@@ -1,0 +1,74 @@
+---
+- include_vars: ../../postgresql/defaults/main.yml
+- apt: pkg={{ item }} state=latest update_cache=yes
+  with_items:
+    - postgresql-{{pg_version}}-repmgr
+
+- user: name={{ repmgr_user }} password={{ repmgr_pass }} state=present
+
+- template: src=postgres.replication.j2 dest=/etc/postgresql/postgres.replication
+  notify: restart postgresql
+- template: src=pg_hba.j2 dest=/etc/postgresql/pg_hba.conf
+  notify: restart postgresql
+- lineinfile: dest=/etc/postgresql/postgresql.conf line="include '/etc/postgresql/postgres.replication'"
+  notify: restart postgresql
+
+- template: src=repmgr.default dest=/etc/default/repmgrd
+- template: src=pgpass.j2 dest=~/.pgpass owner=postgres group=postgres mode=0600
+  become: yes
+  become_user: postgres
+
+- postgresql_db: name={{ repmgr_base }} encoding='UTF-8' lc_collate='ru_RU.UTF-8' lc_ctype='ru_RU.UTF-8' template='template0' port={{ pg_port }} state=present
+  sudo: yes
+  sudo_user: postgres
+  when: pg_role == 'master'
+
+- postgresql_user: db={{ repmgr_base }} name={{ repmgr_user }} password='repmgr' priv=ALL port={{ pg_port }} state=present role_attr_flags=SUPERUSER,REPLICATION,LOGIN
+  become: yes
+  become_user: postgres
+  when: pg_role == 'master'
+
+- template: src=repmgr.conf.j2 dest=/etc/repmgr.conf owner=postgres group=postgres
+  notify: restart repmgrd
+
+- service: name=repmgrd state=stopped
+
+- service: name=postgresql state=restarted
+- command: "{{ item }}"
+  with_items:
+    'repmgr -v -f /etc/repmgr.conf master register'
+  become: yes
+  become_user: postgres
+  when: pg_role == 'master'
+  ignore_errors: yes
+
+- service: name=postgresql state=stopped
+  when: pg_role == 'slave'
+- service: name=postgresql state=started
+  when: pg_role == 'master'
+#!HARDCODE
+- shell: "rm -rf /var/lib/postgresql/{{ pg_version }}/main"
+  when: pg_role == 'slave'
+
+- command: "repmgr -h pg-ol1 --verbose -p {{ pg_port }} -d repmgr -U repmgr -R postgres standby clone"
+  become: yes
+  become_user: postgres
+  when: pg_role == 'slave'
+
+- service: name=postgresql state=started
+  when: pg_role == 'slave'
+
+- command: "{{ item }}"
+  with_items:
+    'repmgr -f /etc/repmgr.conf standby register'
+  become: yes
+  become_user: postgres
+  when: pg_role == 'slave'
+  ignore_errors: yes
+
+- service: name=postgresql state=started
+- service: name=repmgrd state=started
+
+
+
+#[2016-07-29 10:59:39] [HINT] After starting the server, you need to register this standby with "repmgr standby register"

@@ -1,0 +1,4 @@
+---
+dependencies:
+  - { role: postgresql }
+  - { role: ssh_cluster, ssh_cluster_user: 'postgres', ssh_cluster_user_home: '/var/lib/postgresql', ssh_cluster_ansiblegroup: 'pg-ol'}

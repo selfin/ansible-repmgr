@@ -1,0 +1,3 @@
+{% for host in groups[pg_replication_group] %}
+{{ host }}:{{ pg_port }}:{{ repmgr_base }}:{{ repmgr_user }}:{{ repmgr_pass }}
+{% endfor %}

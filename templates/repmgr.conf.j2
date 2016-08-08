@@ -1,0 +1,8 @@
+cluster={{ pg_cluster_name }}
+node={{ansible_hostname[-1::]}}
+node_name={{ansible_hostname}}
+conninfo='host={{ansible_hostname}} port={{pg_port}} user={{repmgr_user}} password={{repmgr_pass}} dbname={{repmgr_base}}'
+failover=manual
+promote_command='repmgr standby promote -f /etc/repmgr.conf'
+follow_command='repmgr standby follow -f /etc/repmgr.conf'
+pg_bindir=/usr/lib/postgresql/{{pg_version}}/bin/

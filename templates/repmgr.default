@@ -1,0 +1,8 @@
+# default settings for repmgrd. This file is source by /bin/sh from
+# /etc/init.d/repmgrd
+REPMGRD_ENABLED=yes
+REPMGRD_OPTS="-m -d "
+REPMGRD_CONF=/etc/repmgr.conf
+REPMGRD_USER=postgres
+REPMGR_BIN=/usr/bin/repmgr
+REPMGR_PIDFILE=/var/run/repmgrd.pid

@@ -1,0 +1,39 @@
+- service: name=repmgrd state=stopped
+
+- service: name=postgresql state=restarted
+
+- command: "{{ item }}"
+  with_items:
+    'repmgr -v -f /etc/repmgr.conf master register'
+  become: yes
+  become_user: postgres
+  when: pg_role == 'master'
+  ignore_errors: yes
+
+- service: name=postgresql state=stopped
+  when: pg_role == 'slave'
+- service: name=postgresql state=started
+  when: pg_role == 'master'
+
+#!HARDCODE
+- set_fact: masternode={{ groups[[pg_replication_group][0]] }}
+- debug: var=masternode
+
+- shell: "rm -rf /var/lib/postgresql/{{ pg_version }}/main"
+  when: pg_role == 'slave'
+
+- command: "repmgr -h {{ masternode }} --verbose -p {{ pg_port }} -d repmgr -U repmgr -R postgres standby clone"
+  become: yes
+  become_user: postgres
+  when: pg_role == 'slave'
+
+- service: name=postgresql state=started
+  when: pg_role == 'slave'
+
+- command: "{{ item }}"
+  with_items:
+    'repmgr -f /etc/repmgr.conf standby register'
+  become: yes
+  become_user: postgres
+  when: pg_role == 'slave'
+  ignore_errors: yes

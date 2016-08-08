@@ -1,0 +1,6 @@
+---
+pg_replication_group: 'pg-ol'
+pg_cluster_name: 'pgcl'
+repmgr_user: 'repmgr'
+repmgr_pass: 'repmgr'
+repmgr_base: 'repmgr'
